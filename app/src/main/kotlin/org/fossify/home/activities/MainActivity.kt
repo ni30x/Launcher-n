@@ -182,6 +182,9 @@ class MainActivity : SimpleActivity(), FlingListener {
         }
 
         setupWallpaperColorListener()
+
+        // Open app drawer on startup so apps are visible immediately in preview
+        showFragment(binding.allAppsFragment, 0L)
     }
 
     private fun setupWallpaperColorListener() {

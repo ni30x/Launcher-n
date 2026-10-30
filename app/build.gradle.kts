@@ -42,6 +42,12 @@ android {
     }
 
     signingConfigs {
+        create("debugConfig") {
+            storeFile = file("${rootDir}/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (keystorePropertiesFile.exists()) {
             register("release") {
                 keyAlias = keystoreProperties.getProperty("keyAlias")
@@ -68,7 +74,7 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("debugConfig")
         }
         release {
             isMinifyEnabled = true
@@ -81,12 +87,6 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
-    }
-
-    flavorDimensions.add("variants")
-    productFlavors {
-        register("foss")
-        register("gplay")
     }
 
     sourceSets {
