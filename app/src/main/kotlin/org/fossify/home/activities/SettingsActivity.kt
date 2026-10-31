@@ -59,6 +59,7 @@ class SettingsActivity : SimpleActivity() {
         setupManageHiddenIcons()
         updateTextColors(binding.settingsHolder)
 
+
         arrayOf(
             binding.settingsColorCustomizationSectionLabel,
             binding.settingsGeneralSettingsLabel,
@@ -135,6 +136,8 @@ class SettingsActivity : SimpleActivity() {
             }
         }
     }
+
+
 
     private fun setupOpenKeyboardOnAppDrawer() {
         binding.settingsOpenKeyboardOnAppDrawerHolder.beVisibleIf(config.showSearchBar)

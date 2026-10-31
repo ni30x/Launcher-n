@@ -4,7 +4,9 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.util.AttributeSet
 import android.view.MotionEvent
+import android.view.View
 import android.view.inputmethod.EditorInfo
+
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.OnScrollListener
 import org.fossify.commons.extensions.beGone
@@ -17,6 +19,10 @@ import org.fossify.commons.views.MyGridLayoutManager
 import org.fossify.home.activities.MainActivity
 import org.fossify.home.adapters.LaunchersAdapter
 import org.fossify.home.databinding.AllAppsFragmentBinding
+import android.graphics.Point
+import org.fossify.commons.extensions.realScreenSize
+import org.fossify.home.liquidglass.LiquidGlassDrawerDrawable
+import org.fossify.home.liquidglass.LiquidGlassSearchBarDrawable
 import org.fossify.home.extensions.config
 import org.fossify.home.extensions.launchApp
 import org.fossify.home.extensions.setupDrawerBackground
@@ -52,8 +58,11 @@ class AllAppsFragment(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        setupDrawerBackground()
+        val screenSize = activity?.realScreenSize ?: Point(resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
+        background = LiquidGlassDrawerDrawable(this, screenSize.x, screenSize.y)
     }
+
+
 
     @SuppressLint("NotifyDataSetChanged")
     fun onResume() {
@@ -190,17 +199,30 @@ class AllAppsFragment(
             }
         })
 
-        setupDrawerBackground()
-        getAdapter()?.updateTextColor(context.getProperTextColor())
+        val screenSize = activity?.realScreenSize ?: Point(resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
+        background = LiquidGlassDrawerDrawable(this, screenSize.x, screenSize.y)
+        binding.allAppsGrid.background = null
+        binding.allAppsFastscroller.background = null
 
         binding.searchBar.beVisibleIf(context.config.showSearchBar)
         binding.searchBar.requireToolbar().beGone()
         binding.searchBar.updateColors()
         binding.searchBar.setupMenu()
 
+        binding.searchBar.background = LiquidGlassSearchBarDrawable(binding.searchBar, screenSize.x, screenSize.y)
+        binding.searchBar.binding.root.background = null
+        binding.searchBar.binding.topToolbarSearch.background = null
+
+        binding.searchBar.binding.topToolbarSearch.setTextColor(android.graphics.Color.WHITE)
+        binding.searchBar.binding.topToolbarSearch.setHintTextColor(android.graphics.Color.argb(180, 255, 255, 255))
+        binding.searchBar.binding.topToolbarSearchIcon.setColorFilter(android.graphics.Color.WHITE)
+
         binding.searchBar.onSearchTextChangedListener = {
             submitList(launchers)
         }
+
+
+
 
         binding.searchBar.binding.topToolbarSearch.setOnEditorActionListener { _, actionId, _ ->
             if (binding.searchBar.getCurrentQuery().isEmpty()) return@setOnEditorActionListener false

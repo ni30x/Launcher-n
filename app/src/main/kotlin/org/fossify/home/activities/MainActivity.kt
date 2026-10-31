@@ -32,8 +32,10 @@ import android.view.GestureDetector
 import android.view.Gravity
 import android.view.Menu
 import android.view.MotionEvent
+import android.view.View
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.animation.DecelerateInterpolator
+import org.fossify.home.liquidglass.LiquidGlassBackdrop
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.drawable.toDrawable
@@ -154,6 +156,7 @@ class MainActivity : SimpleActivity(), FlingListener {
         mAllAppsFragmentY = mScreenHeight
         mWidgetsFragmentY = mScreenHeight
         mMoveGestureThreshold = resources.getDimensionPixelSize(R.dimen.move_gesture_threshold)
+        LiquidGlassBackdrop.desktopView = binding.homeScreenGrid.root
 
         arrayOf(
             binding.allAppsFragment.root as MyFragment<*>,
@@ -196,6 +199,7 @@ class MainActivity : SimpleActivity(), FlingListener {
                         refreshWallpaperSupportsDarkText()
                         wallpaperSupportsDarkText
                     }
+                    LiquidGlassBackdrop.invalidate()
                     if (!isAllAppsFragmentExpanded() && !isWidgetsFragmentExpanded()) {
                         runOnUiThread {
                             updateStatusBarIcons()
@@ -446,7 +450,10 @@ class MainActivity : SimpleActivity(), FlingListener {
                             binding.allAppsFragment.root.y = min(
                                 a = max(0f, newY), b = mScreenHeight.toFloat()
                             )
+                            updateHomeScreenAlphaForDrawer()
+                            binding.allAppsFragment.root.invalidate()
                         }
+
                     } else if (abs(diffX) > abs(diffY) && !mIgnoreXMoveEvents) {
                         mIgnoreYMoveEvents = true
                         binding.homeScreenGrid.root.setSwipeMovement(diffX)
@@ -634,15 +641,33 @@ class MainActivity : SimpleActivity(), FlingListener {
         mIgnoreUpEvent = false
     }
 
+    fun updateHomeScreenAlphaForDrawer() {
+        if (mScreenHeight <= 0) return
+        val progress = (1f - (binding.allAppsFragment.root.y / mScreenHeight)).coerceIn(0f, 1f)
+        LiquidGlassBackdrop.desktopView = binding.homeScreenGrid.root
+        LiquidGlassBackdrop.drawerProgress = progress
+        binding.homeScreenGrid.root.alpha = 1f - progress
+        binding.homeScreenGrid.root.visibility = if (progress >= 1f) View.INVISIBLE else View.VISIBLE
+    }
+
     private fun showFragment(fragment: ViewBinding, animationDuration: Long = ANIMATION_DURATION) {
         ObjectAnimator.ofFloat(fragment.root, "y", 0f).apply {
             duration = animationDuration
             interpolator = DecelerateInterpolator()
+            addUpdateListener {
+                if (fragment is AllAppsFragmentBinding) {
+                    updateHomeScreenAlphaForDrawer()
+                    binding.allAppsFragment.root.invalidate()
+                }
+            }
             start()
         }
 
-        window.navigationBarColor = resources.getColor(R.color.semitransparent_navigation)
+        window.navigationBarColor = Color.TRANSPARENT
         binding.homeScreenGrid.root.fragmentExpanded()
+
+
+
         binding.homeScreenGrid.root.hideResizeLines()
 
         @SuppressLint("AccessibilityFocus")
@@ -667,9 +692,18 @@ class MainActivity : SimpleActivity(), FlingListener {
     }
 
     private fun hideFragment(fragment: ViewBinding, animationDuration: Long = ANIMATION_DURATION) {
+        if (fragment is AllAppsFragmentBinding) {
+            binding.homeScreenGrid.root.visibility = View.VISIBLE
+        }
         ObjectAnimator.ofFloat(fragment.root, "y", mScreenHeight.toFloat()).apply {
             duration = animationDuration
             interpolator = DecelerateInterpolator()
+            addUpdateListener {
+                if (fragment is AllAppsFragmentBinding) {
+                    updateHomeScreenAlphaForDrawer()
+                    binding.allAppsFragment.root.invalidate()
+                }
+            }
             start()
         }
 
@@ -743,6 +777,9 @@ class MainActivity : SimpleActivity(), FlingListener {
                 binding.allAppsFragment.allAppsGrid.scrollToPosition(0)
                 binding.allAppsFragment.root.touchDownY = -1
                 binding.homeScreenGrid.root.fragmentCollapsed()
+                binding.homeScreenGrid.root.alpha = 1f
+                binding.homeScreenGrid.root.visibility = View.VISIBLE
+                LiquidGlassBackdrop.drawerProgress = 0f
                 updateStatusBarIcons()
             }
             if (delayed) {

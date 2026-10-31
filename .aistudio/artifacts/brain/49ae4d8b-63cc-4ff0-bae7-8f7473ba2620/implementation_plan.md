@@ -1,75 +1,33 @@
-# Fix GitHub Actions Debug Signing Build Failure
+# Dynamic Leading-Edge Snell's Law Refraction (Completed)
 
-Resolve the `:app:validateSigningDebug` build failure on GitHub Actions caused by missing `debug.keystore` file in non-local environments.
-
-> [!IMPORTANT]
-> **Confirmed Decision**: Auto-detect `${rootDir}/debug.keystore` if present (for local container environments), and fall back to AGP's default built-in debug keystore mechanism (`~/.android/debug.keystore`) on GitHub Actions runners.
+Successfully implemented a real-physics optical refraction shader in AGSL (Android Graphics Shading Language) and real-time backdrop compositor for the Fossify Launcher app drawer.
 
 ---
 
-## 1. Overview & Core Concept
+## 1. What Was Implemented
 
-When running `./gradlew assembleDebug` on GitHub Actions, the task `:app:validateSigningDebug` failed with:
-`Keystore file '/home/runner/work/Launcher-n/Launcher-n/debug.keystore' not found for signing config 'debugConfig'`.
+1. **Snell's Law AGSL RuntimeShader (`LiquidGlassShader.kt`)**:
+   - Implements authentic optical ray bending using Snell's Law:
+     $$n_1 \sin(\theta_1) = n_2 \sin(\theta_2) \quad \text{with } n_1 = 1.0, \, n_2 = 1.52$$
+   - Calculates 3D surface normals $\mathbf{N} = \text{normalize}(\text{vec3}(-\text{grad} \cdot h'(t) \cdot \text{slope}, 1.0))$ from the curved edge profile.
+   - Computes lateral displacement $\Delta \mathbf{P} = \mathbf{R}_{xy} \cdot H_{\text{lens}}$ to physically distort light passing through the glass lip.
+   - **Chromatic Dispersion**: Shifts red ($1.03\times$) and blue ($0.97\times$) sampling channels slightly to produce authentic optical rainbow fringing along the curved edge.
+   - **Dynamic Specular Rim Highlight**: Computes Phong/Fresnel directional reflection from overhead ambient light $(-0.707, -0.707, 0.5)$, producing a bright, moving light glint catching the curve as the drawer travels.
 
-This occurs because `app/build.gradle.kts` explicitly assigned `signingConfig = signingConfigs.getByName("debugConfig")`, pointing to `${rootDir}/debug.keystore`. On clean CI runners where this file does not exist, AGP fails validation instead of using its built-in default debug keystore.
+2. **Real-Time Dynamic Scene Compositing (`LiquidGlassBackdrop.kt`)**:
+   - During swipe up (`drawerProgress < 1.0f`), dynamically composites the live desktop view (`homeScreenGrid`) over the full-resolution system wallpaper.
+   - As the drawer's leading curved edge sweeps upward, both the wallpaper and the desktop icons underneath the edge are physically bent, magnified, and refracted in real time.
+   - When the drawer reaches full expansion (`drawerProgress >= 1.0f`), the backdrop transitions to 100% pure wallpaper.
 
----
+3. **Smooth Icon Fade-Out & Edge Tracking (`MainActivity.kt`)**:
+   - On drawer swipe (`MotionEvent.ACTION_MOVE`) and slide animations (`ObjectAnimator`), continuously updates:
+     $$\alpha_{\text{home}} = \left(\frac{Y_{\text{edge}}}{\text{screenHeight}}\right)$$
+   - Home screen apps fade out linearly as the drawer opens and become `INVISIBLE` when fully open.
+   - Drawer root redraws live during swipe gestures to reflect instantaneous refraction coordinates.
 
-## 2. Technical Solution & Changes
+4. **RenderEffect & Compose Utility (`LiquidGlassEffect.kt`)**:
+   - Exposes `createRenderEffect(...)` wrapping `RenderEffect.createRuntimeShaderEffect(shader, "content")` for use in Jetpack Compose `graphicsLayer` and Android `View.setRenderEffect`.
 
-### Conditional Debug Signing in `app/build.gradle.kts`
-Modify `app/build.gradle.kts` so `debugConfig` is only created and assigned if `${rootDir}/debug.keystore` actually exists on disk:
-
-```kotlin
-signingConfigs {
-    if (file("${rootDir}/debug.keystore").exists()) {
-        create("debugConfig") {
-            storeFile = file("${rootDir}/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
-    }
-    // ... release signing config ...
-}
-
-buildTypes {
-    debug {
-        if (file("${rootDir}/debug.keystore").exists()) {
-            signingConfig = signingConfigs.getByName("debugConfig")
-        }
-    }
-}
-```
-
-### Benefits
-1. **GitHub Actions Compatibility**: On CI runners without `${rootDir}/debug.keystore`, AGP uses standard default debug signing (`~/.android/debug.keystore`), automatically created on demand.
-2. **Local Studio Compatibility**: On local container environments where `${rootDir}/debug.keystore` exists, it uses the local keystore seamlessly.
-
----
-
-## 3. Architecture & Data Flow
-
-```
-┌─────────────────────────────────────────────────────────┐
-│              app/build.gradle.kts Build                 │
-└────────────────────────────┬────────────────────────────┘
-                             │
-            Check file("${rootDir}/debug.keystore").exists()
-                             │
-              ┌──────────────┴──────────────┐
-              │                             │
-          [ Exists ]                  [ Not Exists ]
-              │                             │
-  Use custom debugConfig         Use AGP default debug
-(Local Studio container)        keystore (~/.android/debug.keystore)
-                                 (GitHub Actions CI)
-```
-
----
-
-## 4. Verification Plan
-
-1. Verify build locally via `compile_applet`.
-2. Confirm both local builds and CI workflow runs pass task `:app:validateSigningDebug` without errors.
+5. **Build & APK Verification**:
+   - Built and verified with `compile_applet` and Gradle task `assembleFossDebug`.
+   - Output APK refreshed at `app/build/outputs/apk/debug/app-debug.apk`.

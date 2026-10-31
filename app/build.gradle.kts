@@ -93,6 +93,12 @@ android {
         }
     }
 
+    flavorDimensions.add("version")
+    productFlavors {
+        register("foss")
+        register("gplay")
+    }
+
     sourceSets {
         getByName("main").java.directories.add("src/main/kotlin")
     }
@@ -149,3 +155,16 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     detektPlugins(libs.compose.detekt)
 }
+
+val copyFossDebugApk = tasks.register<Copy>("copyFossDebugApkToStandardPath") {
+    from(layout.buildDirectory.dir("outputs/apk/foss/debug"))
+    include("*.apk")
+    into(layout.buildDirectory.dir("outputs/apk/debug"))
+    rename { "app-debug.apk" }
+}
+
+tasks.matching { it.name.startsWith("assemble") }.configureEach {
+    finalizedBy(copyFossDebugApk)
+}
+
+

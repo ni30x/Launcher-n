@@ -36,6 +36,9 @@ class LaunchersAdapter(
     private var textColor = activity.getProperTextColor()
     private var iconPadding = 0
 
+
+
+
     init {
         setHasStableIds(true)
         calculateIconWidth()
@@ -87,9 +90,13 @@ class LaunchersAdapter(
             val binding = ItemLauncherLabelBinding.bind(itemView)
             itemView.apply {
                 binding.launcherLabel.text = launcher.title
-                binding.launcherLabel.setTextColor(textColor)
+                binding.launcherLabel.setTextColor(android.graphics.Color.WHITE)
+                binding.launcherLabel.setShadowLayer(4f, 0f, 1f, android.graphics.Color.argb(160, 0, 0, 0))
                 binding.launcherLabel.beVisibleIf(activity.config.showDrawerAppLabels)
                 binding.launcherIcon.setPadding(iconPadding, iconPadding, iconPadding, 0)
+
+
+
 
                 if (launcher.drawable != null && binding.launcherIcon.tag == true) {
                     binding.launcherIcon.setImageDrawable(launcher.drawable)

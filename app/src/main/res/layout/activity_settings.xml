@@ -163,6 +163,7 @@
                 android:id="@+id/settings_drawer_column_count_holder"
                 style="@style/SettingsHolderTextViewStyle"
                 android:layout_width="match_parent"
+
                 android:layout_height="wrap_content"
                 android:background="@drawable/ripple_background">
 
